@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OreCalc — Odds &amp; Rewards Calculator for the ORE Protocol</title>
+<meta name="description" content="Solo chance, SOL rewards, ORE rewards, and Motherlode calculators for the ORE mining protocol on Solana." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="grain"></div>
+
+<nav class="nav">
+  <div class="nav__logo"><span class="dot"></span>ORECALC</div>
+  <div class="nav__links">
+    <a href="#solo-chance">Solo Chance</a>
+    <a href="#sol-rewards">SOL Rewards</a>
+    <a href="#ore-rewards">ORE Rewards</a>
+    <a href="#motherlode">Motherlode</a>
+  </div>
+  <a class="nav__cta" href="donations.html">Donate</a>
+</nav>
+
+<header class="hero">
+  <div class="hero__grid-bg" id="hero-grid"></div>
+  <span class="hero__kicker">Unofficial · Community Built</span>
+  <h1 class="hero__title"><span class="flicker">ORE</span>CALC</h1>
+  <p class="hero__sub">Precision odds and reward calculators for the ORE mining protocol on Solana — solo chance, SOL payouts, ORE bonus rewards, and Motherlode share, all derived from the protocol's own source code.</p>
+  <div class="hero__actions">
+    <a class="btn btn--solid" href="#solo-chance">Run a calculation</a>
+    <a class="btn" href="donations.html">Support this tool</a>
+  </div>
+  <div class="scroll-cue"><div class="line"></div>SCROLL</div>
+</header>
+
+<!-- ============================================================
+     SOLO CHANCE
+     ============================================================ -->
+<section class="section" id="solo-chance">
+  <div class="section__head reveal">
+    <div>
+      <span class="section__eyebrow">01 / Odds</span>
+      <h2 class="section__title">Solo Chance</h2>
+    </div>
+    <p class="section__desc">The probability that you personally are the one who wins the ORE bonus outright — your block has to win (1/25), the round has to land as a solo drop (1/2), and you have to be the one picked, weighted by your stake in the block.</p>
+  </div>
+
+  <form class="calc reveal" id="form-solo">
+    <div class="calc__inputs">
+      <div class="mini-grid" data-pattern="12"></div>
+      <div class="field" style="margin-top:24px;">
+        <label for="solo-your-stake">Your SOL on this block</label>
+        <input type="number" id="solo-your-stake" step="0.01" min="0" value="2" />
+      </div>
+      <div class="field">
+        <label for="solo-block-total">Total SOL staked on this block (everyone)</label>
+        <input type="number" id="solo-block-total" step="0.01" min="0" value="10" />
+        <span class="hint">Includes your own stake above.</span>
+      </div>
+    </div>
+    <div class="calc__output">
+      <div class="stat">
+        <div class="stat__label">Your personal solo-win chance, this round</div>
+        <div class="stat__value" id="solo-out-personal">—</div>
+      </div>
+      <div class="odds-split">
+        <div class="pill">
+          <div class="num" id="solo-out-block">—</div>
+          <div class="lab">Block wins round</div>
+        </div>
+        <div class="pill">
+          <div class="num" id="solo-out-share">—</div>
+          <div class="lab">Your share of block</div>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<!-- ============================================================
+     SOL REWARDS
+     ============================================================ -->
+<section class="section" id="sol-rewards">
+  <div class="section__head reveal">
+    <div>
+      <span class="section__eyebrow">02 / Payout</span>
+      <h2 class="section__title">SOL Rewards</h2>
+    </div>
+    <p class="section__desc">If your block wins, this shows exactly what you'd walk away with — after the protocol's 1% flat admin fee, the 1% fee on the losing pool, and the 10% vault fee, mirrored step-for-step from the on-chain reset logic.</p>
+  </div>
+
+  <form class="calc reveal" id="form-sol">
+    <div class="calc__inputs">
+      <div class="mini-grid" data-pattern="6,7,8,11,13,16,17,18"></div>
+      <div class="field" style="margin-top:24px;">
+        <label for="sol-your-stake">Your SOL on the winning block</label>
+        <input type="number" id="sol-your-stake" step="0.01" min="0" value="2" />
+      </div>
+      <div class="field">
+        <label for="sol-block-total">Total SOL on the winning block</label>
+        <input type="number" id="sol-block-total" step="0.01" min="0" value="10" />
+      </div>
+      <div class="field">
+        <label for="sol-total-deployed">Total SOL deployed this round (all 25 blocks)</label>
+        <input type="number" id="sol-total-deployed" step="0.01" min="0" value="60" />
+        <span class="hint">Includes the winning block total above.</span>
+      </div>
+    </div>
+    <div class="calc__output">
+      <div class="stat">
+        <div class="stat__label">Total return if this block wins</div>
+        <div class="stat__value" id="sol-out-return">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Net gain / loss</div>
+        <div class="stat__value" id="sol-out-net">—</div>
+        <div class="stat__sub">Chance this block wins: <span id="sol-out-blockwin">—</span></div>
+      </div>
+      <div class="fee-breakdown">
+        <div><span>Flat admin fee (1% of round total)</span><span id="sol-fee-admin">—</span></div>
+        <div><span>Winnings admin fee (1% of losing pool)</span><span id="sol-fee-wadmin">—</span></div>
+        <div><span>Vault fee (10% of remaining pool)</span><span id="sol-fee-vault">—</span></div>
+        <div><span>Final winnings pool (shared by block)</span><span id="sol-fee-final">—</span></div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<!-- ============================================================
+     ORE (SPL) REWARDS
+     ============================================================ -->
+<section class="section" id="ore-rewards">
+  <div class="section__head reveal">
+    <div>
+      <span class="section__eyebrow">03 / Bonus</span>
+      <h2 class="section__title">ORE Rewards</h2>
+    </div>
+    <p class="section__desc">Every round has even odds of paying its ORE bonus as a single solo drop or splitting it across everyone in the winning block. Expected value is identical either way — solo just means higher variance.</p>
+  </div>
+
+  <form class="calc reveal" id="form-ore">
+    <div class="calc__inputs">
+      <div class="mini-grid" data-pattern="2,7,12,17,22"></div>
+      <div class="field" style="margin-top:24px;">
+        <label for="ore-your-stake">Your SOL on this block</label>
+        <input type="number" id="ore-your-stake" step="0.01" min="0" value="2" />
+      </div>
+      <div class="field">
+        <label for="ore-block-total">Total SOL staked on this block</label>
+        <input type="number" id="ore-block-total" step="0.01" min="0" value="10" />
+      </div>
+    </div>
+    <div class="calc__output">
+      <div class="stat">
+        <div class="stat__label">Expected ORE reward</div>
+        <div class="stat__value" id="ore-out-expected">—</div>
+      </div>
+      <div class="odds-split">
+        <div class="pill">
+          <div class="num" id="ore-out-solo">—</div>
+          <div class="lab">Round is solo drop</div>
+        </div>
+        <div class="pill">
+          <div class="num" id="ore-out-split">—</div>
+          <div class="lab">Round is split</div>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<!-- ============================================================
+     MOTHERLODE
+     ============================================================ -->
+<section class="section" id="motherlode">
+  <div class="section__head reveal">
+    <div>
+      <span class="section__eyebrow">04 / Jackpot</span>
+      <h2 class="section__title">Motherlode</h2>
+    </div>
+    <p class="section__desc">0.2 ORE is added to the Motherlode pool every round. When it triggers, the pool is split by stake proportion among whoever's on the winning block that round — not a separate lottery on top.</p>
+  </div>
+
+  <form class="calc reveal" id="form-motherlode">
+    <div class="calc__inputs">
+      <div class="mini-grid" data-pattern="0,1,2,3,4,5,9,10,14,15,19,20,21,22,23,24"></div>
+      <div class="field" style="margin-top:24px;">
+        <label for="ml-your-stake">Your SOL on this block</label>
+        <input type="number" id="ml-your-stake" step="0.01" min="0" value="2" />
+      </div>
+      <div class="field">
+        <label for="ml-block-total">Total SOL staked on this block</label>
+        <input type="number" id="ml-block-total" step="0.01" min="0" value="10" />
+      </div>
+      <div class="field">
+        <label for="ml-rounds">Rounds you plan to mine</label>
+        <input type="number" id="ml-rounds" step="1" min="0" value="600" />
+        <span class="hint">Each round is ~1 minute.</span>
+      </div>
+      <div class="field">
+        <label for="ml-amount">Motherlode amount to calculate against (ORE)</label>
+        <input type="number" id="ml-amount" step="0.01" min="0" value="50" />
+        <span class="hint">Enter any pool size you want to check — e.g. its current known value, or a hypothetical.</span>
+      </div>
+    </div>
+    <div class="calc__output">
+      <div class="stat">
+        <div class="stat__label">Your payout if it hits at this amount, on a round your block wins</div>
+        <div class="stat__value" id="ml-out-payout-direct">—</div>
+        <div class="stat__sub">= pool amount &times; your share of the winning block</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Chance the pool triggers within your session</div>
+        <div class="stat__value" id="ml-out-trigger">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Chance <em>you</em> specifically win a share of it</div>
+        <div class="stat__value" id="ml-out-yourhit">—</div>
+        <div class="stat__sub" id="ml-out-payout">—</div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="donate-teaser reveal">
+  <h2 class="section__title" style="font-size: 28px;">Built free. Kept free.</h2>
+  <p>OreCalc is an independent, unofficial tool — not affiliated with Regolith Labs. If it saved you some guesswork, consider chipping in.</p>
+  <a class="btn btn--solid" href="donations.html">Go to donations</a>
+</section>
+
+<footer>
+  <p class="disclaimer">OreCalc is an unofficial, community-built calculator. Formulas are derived from the public regolith-labs/ore source code at the time of writing and may drift from live protocol behavior as the code evolves — always verify against on-chain state before making financial decisions. Not affiliated with or endorsed by Regolith Labs.</p>
+  <p>&copy; <span id="year"></span> OreCalc</p>
+</footer>
+
+<script src="js/script.js"></script>
+<script src="js/calculators.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Donate — OreCalc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="grain"></div>
+
+<nav class="nav">
+  <div class="nav__logo"><a href="index.html" style="display:flex;align-items:center;gap:8px;"><span class="dot"></span>ORECALC</a></div>
+  <div class="nav__links">
+    <a href="index.html#solo-chance">Solo Chance</a>
+    <a href="index.html#sol-rewards">SOL Rewards</a>
+    <a href="index.html#ore-rewards">ORE Rewards</a>
+    <a href="index.html#motherlode">Motherlode</a>
+  </div>
+  <a class="nav__cta" href="index.html">Back Home</a>
+</nav>
+
+<header class="hero" style="min-height: 60vh; padding-top: 160px;">
+  <div class="hero__grid-bg" id="hero-grid" style="opacity:0.5;"></div>
+  <span class="hero__kicker">Support the project</span>
+  <h1 class="hero__title" style="font-size: clamp(36px, 7vw, 72px);">DONATE</h1>
+  <p class="hero__sub">OreCalc is free, unofficial, and built in spare time to make ORE's odds and payouts easy to reason about before you deploy real SOL. If it's been useful, a donation goes straight toward keeping it maintained and accurate as the protocol changes.</p>
+</header>
+
+<section class="section" style="border-bottom: none; padding-top: 0;">
+  <div class="wallet-box reveal">
+    <span class="section__eyebrow">Solana Wallet</span>
+    <p style="color: var(--gray-300); margin: 10px 0 0;">Send SOL, ORE, or any SPL token to the address below.</p>
+    <div class="addr" id="wallet-address">5b5om8qu2WrLepZ9ooTZB3Fh4WJNH7gDkEieWyHSb3uU</div>
+    <button class="copy-btn" id="copy-btn">Copy Address</button>
+  </div>
+</section>
+
+<footer>
+  <p class="disclaimer">OreCalc is an unofficial, community-built calculator, not affiliated with or endorsed by Regolith Labs. Donations support development and hosting only.</p>
+  <p>&copy; <span id="year"></span> OreCalc</p>
+</footer>
+
+<script src="js/script.js"></script>
+<script>
+  document.getElementById("copy-btn").addEventListener("click", () => {
+    const addr = document.getElementById("wallet-address").textContent.trim();
+    navigator.clipboard.writeText(addr).then(() => {
+      const btn = document.getElementById("copy-btn");
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1800);
+    });
+  });
+</script>
+</body>
+</html>
