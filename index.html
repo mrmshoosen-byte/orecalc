@@ -101,9 +101,9 @@
         <span class="hint">Out of 25 total tiles on the board.</span>
       </div>
       <div class="field">
-        <label for="sol-other-per-tile">Avg. competing SOL per tile (excl. you)</label>
-        <input type="number" id="sol-other-per-tile" step="0.01" min="0" value="4" />
-        <span class="hint">Estimated total stake from other miners on a typical tile. Use 0 to model mining solo.</span>
+        <label for="sol-tile-total">Total deployed on winning tile (including you)</label>
+        <input type="number" id="sol-tile-total" step="0.01" min="0" value="5" />
+        <span class="hint">Total stake from everyone on a typical tile you cover, including your own. Set equal to your stake above to model mining solo.</span>
       </div>
     </div>
     <div class="calc__output">
@@ -152,8 +152,9 @@
         <input type="number" id="ore-num-tiles" step="1" min="1" max="25" value="10" />
       </div>
       <div class="field">
-        <label for="ore-other-per-tile">Avg. competing SOL per tile (excl. you)</label>
-        <input type="number" id="ore-other-per-tile" step="0.01" min="0" value="4" />
+        <label for="ore-tile-total">Total deployed on winning tile (including you)</label>
+        <input type="number" id="ore-tile-total" step="0.01" min="0" value="5" />
+        <span class="hint">Total stake from everyone on a typical tile you cover, including your own.</span>
       </div>
     </div>
     <div class="calc__output">
@@ -194,8 +195,9 @@
         <input type="number" id="ml-num-tiles" step="1" min="1" max="25" value="10" />
       </div>
       <div class="field">
-        <label for="ml-other-per-tile">Avg. competing SOL per tile (excl. you)</label>
-        <input type="number" id="ml-other-per-tile" step="0.01" min="0" value="4" />
+        <label for="ml-tile-total">Total deployed on winning tile (including you)</label>
+        <input type="number" id="ml-tile-total" step="0.01" min="0" value="5" />
+        <span class="hint">Total stake from everyone on a typical tile you cover, including your own.</span>
       </div>
       <div class="field">
         <label for="ml-amount">Motherlode amount to calculate against (ORE)</label>

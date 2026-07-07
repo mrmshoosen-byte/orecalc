@@ -74,13 +74,13 @@ function calcSoloChance(yourStake, tileTotal) {
 //        roughly uniform across all 25 tiles — this is your only real
 //        unknown, since you can't see other players' full positions live.
 // ------------------------------------------------------------
-function calcSolRewards(yourStakePerTile, numTiles, otherPerTile) {
+function calcSolRewards(yourStakePerTile, numTiles, tileTotal) {
   const Y = yourStakePerTile;
   const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
-  const O = otherPerTile;
+  const W = tileTotal; // total deployed on a tile you cover (including you), if it's the winner
+  const O = Math.max(W - Y, 0); // average OTHER-only stake per tile, derived, used for the 25-N tiles you don't cover
 
   const totalInvested = N * Y;
-  const W = Y + O; // total on a tile you cover, if it's the winner
   const T = N * Y + ORE_CONFIG.SQUARES * O; // total deployed across the whole round
   const L = Math.max(T - W, 0); // pool from all non-winning tiles
 
@@ -118,12 +118,10 @@ function calcSolRewards(yourStakePerTile, numTiles, otherPerTile) {
 // Headline assumes: this is a split round AND your tile wins.
 // Your cut of the 1 ORE bonus is your stake share on that tile.
 // ------------------------------------------------------------
-function calcOreRewards(yourStakePerTile, numTiles, otherPerTile) {
+function calcOreRewards(yourStakePerTile, numTiles, tileTotal) {
   const Y = yourStakePerTile;
   const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
-  const O = otherPerTile;
-
-  const W = Y + O;
+  const W = tileTotal; // total deployed on this tile, including you
   const yourShare = W > 0 ? Y / W : 0;
   const winProb = N / ORE_CONFIG.SQUARES;
 
@@ -144,12 +142,10 @@ function calcOreRewards(yourStakePerTile, numTiles, otherPerTile) {
 // Given the pool has already triggered on a round your tile wins,
 // here's exactly what you'd get. No trigger-probability guesswork.
 // ------------------------------------------------------------
-function calcMotherlode(yourStakePerTile, numTiles, otherPerTile, mlAmount) {
+function calcMotherlode(yourStakePerTile, numTiles, tileTotal, mlAmount) {
   const Y = yourStakePerTile;
   const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
-  const O = otherPerTile;
-
-  const W = Y + O;
+  const W = tileTotal; // total deployed on this tile, including you
   const yourShare = W > 0 ? Y / W : 0;
   const winProb = N / ORE_CONFIG.SQUARES;
 
