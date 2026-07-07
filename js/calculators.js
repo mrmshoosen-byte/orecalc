@@ -1,5 +1,5 @@
 // ============================================================
-// OreCalc — Protocol math
+// OreCalc — Protocol math (v2)
 // Formulas derived directly from regolith-labs/ore:
 //   - program/src/reset.rs   (fee + reward distribution on round reset)
 //   - api/src/consts.rs      (ADMIN_FEE_BPS = 100 -> 1%)
@@ -9,15 +9,15 @@
 
 const ORE_CONFIG = {
   SQUARES: 25,                // 5x5 board
-  ADMIN_FEE: 0.01,            // 1%, applied to total round deployed
-  WINNINGS_ADMIN_FEE: 0.01,   // 1%, applied again specifically to the losing-square pool
-  VAULT_FEE: 0.10,            // 10%, applied to the losing-square pool after its admin fee
+  ADMIN_FEE: 0.01,            // 1%, flat, informational (paid from the round separately — see reset.rs)
+  WINNINGS_ADMIN_FEE: 0.01,   // 1%, applied to the losing-tiles pool
+  VAULT_FEE: 0.10,            // 10%, applied to the losing-tiles pool after its own admin fee
   SPLIT_ODDS: 0.5,            // confirmed in reset.rs comment: 1-in-2 odds the ORE bonus is split vs solo
   BONUS_ORE_PER_ROUND: 1,     // ORE bonus at stake each round
   MOTHERLODE_PER_ROUND: 0.2,  // ORE added to the Motherlode pool per round
-  // NOT directly confirmed in the source files we could pull (repo fee logic
-  // is marked "// TODO Integrate admin fee" as of this build) — sourced from
-  // community/media reporting. Update here if Regolith publishes the exact figure.
+  // NOT directly confirmed in the source files we could pull (the relevant
+  // file is marked "// TODO Integrate admin fee" as of this build) — sourced
+  // from community/media reporting. Update here if the real figure differs.
   MOTHERLODE_TRIGGER_ODDS: 1 / 625,
 };
 
@@ -31,114 +31,134 @@ function pct(n, decimals = 2) {
 }
 
 // ------------------------------------------------------------
-// 1) SOLO CHANCE
-// P(this block wins) = 1/25
-// P(bonus this round is a solo drop, not split) = 1/2
-// P(you specifically are the recipient | solo & block wins) = your stake / total stake on block
+// Shared fee cascade — mirrors reset.rs exactly.
+// L = the pool contributed by every tile that did NOT win.
 // ------------------------------------------------------------
-function calcSoloChance(yourStake, blockTotal) {
-  const blockWinProb = 1 / ORE_CONFIG.SQUARES;
-  const yourShare = blockTotal > 0 ? yourStake / blockTotal : 0;
-  const soloWinProb = blockWinProb * ORE_CONFIG.SPLIT_ODDS * yourShare;
-  return {
-    blockWinProb,
-    yourShare,
-    soloWinProb,
-  };
-}
-
-// ------------------------------------------------------------
-// 2) SOL REWARDS  (mirrors reset.rs step by step)
-//   T = total SOL deployed across the whole round (all 25 blocks)
-//   W = total SOL deployed on the winning block
-//   Y = your SOL on the winning block
-// ------------------------------------------------------------
-function calcSolRewards(yourStake, blockTotal, totalDeployed) {
-  const T = totalDeployed;
-  const W = blockTotal;
-  const Y = yourStake;
-  const L = Math.max(T - W, 0); // pool from the 24 losing blocks
-
-  const totalAdminFee = T * ORE_CONFIG.ADMIN_FEE;
+function feeCascade(L) {
   const winningsAdminFee = L * ORE_CONFIG.WINNINGS_ADMIN_FEE;
   const winningsAfterAdmin = L - winningsAdminFee;
   const vaultAmount = winningsAfterAdmin * ORE_CONFIG.VAULT_FEE;
   const finalWinnings = winningsAfterAdmin - vaultAmount;
+  return { winningsAdminFee, vaultAmount, finalWinnings };
+}
+
+// ------------------------------------------------------------
+// 1) SOLO CHANCE
+// Explicitly conditional: the headline number assumes the tile you're
+// on IS the winning tile. The chance that's even true (1/25) is shown
+// as separate, added context — not folded into the main figure.
+// ------------------------------------------------------------
+function calcSoloChance(yourStake, tileTotal) {
+  const blockWinProb = 1 / ORE_CONFIG.SQUARES;
+  const yourShare = tileTotal > 0 ? yourStake / tileTotal : 0;
+
+  // Main stat: given your tile wins, chance YOU are the solo recipient
+  const soloChanceIfWin = ORE_CONFIG.SPLIT_ODDS * yourShare;
+
+  // Added context: the unconditional, full picture
+  const unconditionalChance = blockWinProb * soloChanceIfWin;
+
+  return {
+    blockWinProb,
+    yourShare,
+    soloChanceIfWin,
+    unconditionalChance,
+  };
+}
+
+// ------------------------------------------------------------
+// 2) SOL REWARDS  (multi-tile)
+//   Y  = your SOL staked on EACH tile you cover (same amount per tile)
+//   N  = number of tiles you're covering (out of 25)
+//   O  = average SOL staked by OTHER people on a tile (excl. you), assumed
+//        roughly uniform across all 25 tiles — this is your only real
+//        unknown, since you can't see other players' full positions live.
+// ------------------------------------------------------------
+function calcSolRewards(yourStakePerTile, numTiles, otherPerTile) {
+  const Y = yourStakePerTile;
+  const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
+  const O = otherPerTile;
+
+  const totalInvested = N * Y;
+  const W = Y + O; // total on a tile you cover, if it's the winner
+  const T = N * Y + ORE_CONFIG.SQUARES * O; // total deployed across the whole round
+  const L = Math.max(T - W, 0); // pool from all non-winning tiles
+
+  const totalAdminFee = T * ORE_CONFIG.ADMIN_FEE; // informational — see reset.rs note
+  const { winningsAdminFee, vaultAmount, finalWinnings } = feeCascade(L);
 
   const yourShare = W > 0 ? Y / W : 0;
   const yourWinningsShare = finalWinnings * yourShare;
-  const yourTotalReturn = Y + yourWinningsShare; // your own stake is retained + your cut of winnings
-  const netGain = yourTotalReturn - Y;
-  const netPct = Y > 0 ? netGain / Y : 0;
+
+  const ifWinReturn = Y + yourWinningsShare; // you keep your own stake on the winning tile + your cut
+  const ifWinNet = ifWinReturn - totalInvested; // net vs. everything you put across all N tiles
+  const ifLoseNet = -totalInvested; // if the winner isn't one of your tiles, all N*Y is forfeited
+
+  const winProb = N / ORE_CONFIG.SQUARES;
+  const expectedNet = winProb * ifWinNet + (1 - winProb) * ifLoseNet;
+  const expectedNetPct = totalInvested > 0 ? expectedNet / totalInvested : 0;
 
   return {
-    L,
+    totalInvested,
+    winProb,
+    ifWinReturn,
+    ifWinNet,
+    ifLoseNet,
+    expectedNet,
+    expectedNetPct,
     totalAdminFee,
     winningsAdminFee,
     vaultAmount,
     finalWinnings,
-    yourWinningsShare,
-    yourTotalReturn,
-    netGain,
-    netPct,
-    blockWinProb: 1 / ORE_CONFIG.SQUARES,
   };
 }
 
 // ------------------------------------------------------------
-// 3) ORE (SPL) REWARDS
-// Expected ORE per round = P(block wins) * yourShare * BONUS_ORE
-// (identical in expectation whether the round resolves solo or split,
-//  since a proportional lottery and a proportional split have the same EV —
-//  they differ in variance, not expected value)
+// 3) ORE (SPL) REWARDS — split-round scenario
+// Headline assumes: this is a split round AND your tile wins.
+// Your cut of the 1 ORE bonus is your stake share on that tile.
 // ------------------------------------------------------------
-function calcOreRewards(yourStake, blockTotal) {
-  const blockWinProb = 1 / ORE_CONFIG.SQUARES;
-  const yourShare = blockTotal > 0 ? yourStake / blockTotal : 0;
-  const expectedOrePerRound = blockWinProb * yourShare * ORE_CONFIG.BONUS_ORE_PER_ROUND;
+function calcOreRewards(yourStakePerTile, numTiles, otherPerTile) {
+  const Y = yourStakePerTile;
+  const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
+  const O = otherPerTile;
+
+  const W = Y + O;
+  const yourShare = W > 0 ? Y / W : 0;
+  const winProb = N / ORE_CONFIG.SQUARES;
+
+  const yourSplitShareIfWin = yourShare * ORE_CONFIG.BONUS_ORE_PER_ROUND;
+  const expectedOrePerRound = winProb * ORE_CONFIG.SPLIT_ODDS * yourSplitShareIfWin;
+
   return {
-    blockWinProb,
     yourShare,
+    winProb,
+    yourSplitShareIfWin,
     expectedOrePerRound,
-    soloOdds: ORE_CONFIG.SPLIT_ODDS,
-    splitOdds: 1 - ORE_CONFIG.SPLIT_ODDS,
+    splitOdds: ORE_CONFIG.SPLIT_ODDS,
   };
 }
 
 // ------------------------------------------------------------
-// 4) MOTHERLODE
-//   N = number of rounds you plan to mine
-//   Y, W = your stake / total stake on the block you mine (assumed steady across rounds)
-//   P0 = current known pool size (ORE), optional
-// Payout, when it triggers, is distributed by stake proportion in that
-// round's winning block (per your confirmed rule) — not a separate lottery.
+// 4) MOTHERLODE — deterministic payout
+// Given the pool has already triggered on a round your tile wins,
+// here's exactly what you'd get. No trigger-probability guesswork.
 // ------------------------------------------------------------
-function calcMotherlode(yourStake, blockTotal, rounds, mlAmount) {
-  const perRoundTrigger = ORE_CONFIG.MOTHERLODE_TRIGGER_ODDS;
-  const blockWinProb = 1 / ORE_CONFIG.SQUARES;
-  const yourShare = blockTotal > 0 ? yourStake / blockTotal : 0;
+function calcMotherlode(yourStakePerTile, numTiles, otherPerTile, mlAmount) {
+  const Y = yourStakePerTile;
+  const N = Math.min(Math.max(Math.round(numTiles), 0), ORE_CONFIG.SQUARES);
+  const O = otherPerTile;
 
-  // Probability the pool triggers at all within N rounds
-  const triggerProbWithinN = 1 - Math.pow(1 - perRoundTrigger, rounds);
+  const W = Y + O;
+  const yourShare = W > 0 ? Y / W : 0;
+  const winProb = N / ORE_CONFIG.SQUARES;
 
-  // Probability that YOU are on the winning block on the specific round it triggers
-  const perRoundHitAndWin = perRoundTrigger * blockWinProb;
-  const yourHitProbWithinN = 1 - Math.pow(1 - perRoundHitAndWin, rounds);
-
-  // Direct answer to "what would I actually get" — no probability weighting,
-  // just: if the Motherlode hits at this exact size, and I'm on the winning
-  // block with this stake share, here's my cut.
   const yourPayoutIfHit = mlAmount * yourShare;
 
-  // Probability-weighted expected value across the whole session, for context.
-  const expectedPayout = yourHitProbWithinN * mlAmount * yourShare;
-
   return {
-    triggerProbWithinN,
-    yourHitProbWithinN,
-    yourPayoutIfHit,
-    expectedPayout,
     yourShare,
+    winProb,
+    yourPayoutIfHit,
   };
 }
 
@@ -163,37 +183,41 @@ function wireCalculator(formId, computeFn, render) {
 document.addEventListener("DOMContentLoaded", () => {
   // --- Solo Chance ---
   wireCalculator("form-solo", calcSoloChance, (r) => {
-    document.getElementById("solo-out-personal").textContent = pct(r.soloWinProb, 3);
+    document.getElementById("solo-out-main").textContent = pct(r.soloChanceIfWin, 2);
     document.getElementById("solo-out-block").textContent = pct(r.blockWinProb, 2);
     document.getElementById("solo-out-share").textContent = pct(r.yourShare, 2);
+    document.getElementById("solo-out-full").textContent = pct(r.unconditionalChance, 4);
   });
 
   // --- SOL Rewards ---
   wireCalculator("form-sol", calcSolRewards, (r) => {
-    const returnEl = document.getElementById("sol-out-return");
-    const netEl = document.getElementById("sol-out-net");
-    returnEl.textContent = fmt(r.yourTotalReturn, 4) + " SOL";
-    netEl.textContent = (r.netGain >= 0 ? "+" : "") + fmt(r.netGain, 4) + " SOL  (" + (r.netPct >= 0 ? "+" : "") + pct(r.netPct, 2) + ")";
-    netEl.classList.toggle("neg", r.netGain < 0);
+    document.getElementById("sol-out-expected").textContent = (r.expectedNet >= 0 ? "+" : "") + fmt(r.expectedNet, 4) + " SOL";
+    document.getElementById("sol-out-expected-pct").textContent = (r.expectedNetPct >= 0 ? "+" : "") + pct(r.expectedNetPct, 2);
+    document.getElementById("sol-out-expected").classList.toggle("neg", r.expectedNet < 0);
+
+    document.getElementById("sol-out-winprob").textContent = pct(r.winProb, 2);
+    document.getElementById("sol-out-winreturn").textContent = fmt(r.ifWinReturn, 4) + " SOL";
+    document.getElementById("sol-out-winnet").textContent = (r.ifWinNet >= 0 ? "+" : "") + fmt(r.ifWinNet, 4) + " SOL";
+    document.getElementById("sol-out-losenet").textContent = fmt(r.ifLoseNet, 4) + " SOL";
+
     document.getElementById("sol-fee-admin").textContent = fmt(r.totalAdminFee, 4) + " SOL";
     document.getElementById("sol-fee-wadmin").textContent = fmt(r.winningsAdminFee, 4) + " SOL";
     document.getElementById("sol-fee-vault").textContent = fmt(r.vaultAmount, 4) + " SOL";
     document.getElementById("sol-fee-final").textContent = fmt(r.finalWinnings, 4) + " SOL";
-    document.getElementById("sol-out-blockwin").textContent = pct(r.blockWinProb, 2);
   });
 
   // --- ORE Rewards ---
   wireCalculator("form-ore", calcOreRewards, (r) => {
+    document.getElementById("ore-out-main").textContent = fmt(r.yourSplitShareIfWin, 6) + " ORE";
+    document.getElementById("ore-out-winprob").textContent = pct(r.winProb, 2);
+    document.getElementById("ore-out-share").textContent = pct(r.yourShare, 2);
     document.getElementById("ore-out-expected").textContent = fmt(r.expectedOrePerRound, 6) + " ORE / round";
-    document.getElementById("ore-out-solo").textContent = pct(r.soloOdds, 0);
-    document.getElementById("ore-out-split").textContent = pct(r.splitOdds, 0);
   });
 
   // --- Motherlode ---
   wireCalculator("form-motherlode", calcMotherlode, (r) => {
-    document.getElementById("ml-out-payout-direct").textContent = fmt(r.yourPayoutIfHit, 4) + " ORE";
-    document.getElementById("ml-out-trigger").textContent = pct(r.triggerProbWithinN, 3);
-    document.getElementById("ml-out-yourhit").textContent = pct(r.yourHitProbWithinN, 5);
-    document.getElementById("ml-out-payout").textContent = fmt(r.expectedPayout, 6) + " ORE (probability-weighted)";
+    document.getElementById("ml-out-main").textContent = fmt(r.yourPayoutIfHit, 4) + " ORE";
+    document.getElementById("ml-out-winprob").textContent = pct(r.winProb, 2);
+    document.getElementById("ml-out-share").textContent = pct(r.yourShare, 2);
   });
 });
