@@ -8,17 +8,22 @@
 // ============================================================
 
 const ORE_CONFIG = {
-  SQUARES: 25,                // 5x5 board
-  ADMIN_FEE: 0.01,            // 1%, flat, informational (paid from the round separately — see reset.rs)
-  WINNINGS_ADMIN_FEE: 0.01,   // 1%, applied to the losing-tiles pool
-  VAULT_FEE: 0.10,            // 10%, applied to the losing-tiles pool after its own admin fee
-  SPLIT_ODDS: 0.5,            // confirmed in reset.rs comment: 1-in-2 odds the ORE bonus is split vs solo
-  BONUS_ORE_PER_ROUND: 1,     // ORE bonus at stake each round
-  MOTHERLODE_PER_ROUND: 0.2,  // ORE added to the Motherlode pool per round
-  // NOT directly confirmed in the source files we could pull (the relevant
-  // file is marked "// TODO Integrate admin fee" as of this build) — sourced
-  // from community/media reporting. Update here if the real figure differs.
-  MOTHERLODE_TRIGGER_ODDS: 1 / 625,
+  SQUARES: 25,                 // 5x5 board
+  ROUND_ADMIN_FEE: 0.01,       // 1% of the whole round's total deployed — paid from the round's escrow
+                                // to the fee collector separately (reset.rs). Confirmed NOT to reduce an
+                                // individual miner's own payout — shown as informational only.
+  INDIVIDUAL_ADMIN_FEE: 0.01,  // 1% taken off YOUR OWN returned stake specifically, per miner, on claim
+                                // (checkpoint.rs: admin_fee = (deployed/100).max(1)). This DOES reduce
+                                // what you personally get back — easy to miss, confirmed from source.
+  WINNINGS_ADMIN_FEE: 0.01,    // 1%, applied to the losing-tiles pool (reset.rs)
+  VAULT_FEE: 0.10,             // 10%, applied to the losing-tiles pool after its own admin fee (reset.rs)
+  SPLIT_ODDS: 0.5,             // confirmed in reset.rs comment: 1-in-2 odds the ORE bonus is split vs solo
+  BONUS_ORE_PER_ROUND: 1,      // ORE bonus at stake each round (reset.rs: mint_amount, capped near max supply)
+  MOTHERLODE_PER_ROUND: 0.2,   // ORE added to the Motherlode pool per round (reset.rs: motherlode_mint_amount)
+  ORE_CLAIM_FEE: 0.10,         // 10% taken off ANY ORE (bonus, split, or Motherlode) when you actually claim
+                                // it — redistributed to other miners who haven't claimed yet (miner.rs:
+                                // claim_ore). Applies whenever treasury.total_unclaimed > 0, which in
+                                // practice is essentially always. This was previously missing entirely.
 };
 
 function fmt(n, decimals = 4) {
@@ -84,13 +89,21 @@ function calcSolRewards(yourStakePerTile, numTiles, tileTotal) {
   const T = N * Y + ORE_CONFIG.SQUARES * O; // total deployed across the whole round
   const L = Math.max(T - W, 0); // pool from all non-winning tiles
 
-  const totalAdminFee = T * ORE_CONFIG.ADMIN_FEE; // informational — see reset.rs note
+  const roundAdminFee = T * ORE_CONFIG.ROUND_ADMIN_FEE; // informational only — paid from the round's
+                                                          // escrow to the fee collector; confirmed in
+                                                          // checkpoint.rs that this does NOT reduce your
+                                                          // individual payout below.
   const { winningsAdminFee, vaultAmount, finalWinnings } = feeCascade(L);
 
   const yourShare = W > 0 ? Y / W : 0;
   const yourWinningsShare = finalWinnings * yourShare;
 
-  const ifWinReturn = Y + yourWinningsShare; // you keep your own stake on the winning tile + your cut
+  // Your own returned stake on the winning tile also pays its own 1% fee —
+  // confirmed in checkpoint.rs: admin_fee = (deployed / 100).max(1 lamport).
+  const individualAdminFee = Y * ORE_CONFIG.INDIVIDUAL_ADMIN_FEE;
+  const yourKeptStake = Y - individualAdminFee;
+
+  const ifWinReturn = yourKeptStake + yourWinningsShare;
   const ifWinNet = ifWinReturn - totalInvested; // net vs. everything you put across all N tiles
   const ifLoseNet = -totalInvested; // if the winner isn't one of your tiles, all N*Y is forfeited
 
@@ -106,7 +119,8 @@ function calcSolRewards(yourStakePerTile, numTiles, tileTotal) {
     ifLoseNet,
     expectedNet,
     expectedNetPct,
-    totalAdminFee,
+    roundAdminFee,
+    individualAdminFee,
     winningsAdminFee,
     vaultAmount,
     finalWinnings,
@@ -125,14 +139,22 @@ function calcOreRewards(yourStakePerTile, numTiles, tileTotal) {
   const yourShare = W > 0 ? Y / W : 0;
   const winProb = N / ORE_CONFIG.SQUARES;
 
-  const yourSplitShareIfWin = yourShare * ORE_CONFIG.BONUS_ORE_PER_ROUND;
-  const expectedOrePerRound = winProb * ORE_CONFIG.SPLIT_ODDS * yourSplitShareIfWin;
+  const grossSplitShareIfWin = yourShare * ORE_CONFIG.BONUS_ORE_PER_ROUND;
+  // The 10% claim fee (miner.rs claim_ore) applies when you actually claim —
+  // this was missing before, and is the main reason live results ran lower
+  // than the calculator.
+  const claimFee = grossSplitShareIfWin * ORE_CONFIG.ORE_CLAIM_FEE;
+  const netSplitShareIfWin = grossSplitShareIfWin - claimFee;
+
+  const expectedOrePerRoundNet = winProb * ORE_CONFIG.SPLIT_ODDS * netSplitShareIfWin;
 
   return {
     yourShare,
     winProb,
-    yourSplitShareIfWin,
-    expectedOrePerRound,
+    grossSplitShareIfWin,
+    claimFee,
+    netSplitShareIfWin,
+    expectedOrePerRoundNet,
     splitOdds: ORE_CONFIG.SPLIT_ODDS,
   };
 }
@@ -149,12 +171,17 @@ function calcMotherlode(yourStakePerTile, numTiles, tileTotal, mlAmount) {
   const yourShare = W > 0 ? Y / W : 0;
   const winProb = N / ORE_CONFIG.SQUARES;
 
-  const yourPayoutIfHit = mlAmount * yourShare;
+  const grossPayoutIfHit = mlAmount * yourShare;
+  // Same 10% claim fee applies to Motherlode ORE as any other ORE (miner.rs claim_ore).
+  const claimFee = grossPayoutIfHit * ORE_CONFIG.ORE_CLAIM_FEE;
+  const netPayoutIfHit = grossPayoutIfHit - claimFee;
 
   return {
     yourShare,
     winProb,
-    yourPayoutIfHit,
+    grossPayoutIfHit,
+    claimFee,
+    netPayoutIfHit,
   };
 }
 
@@ -196,24 +223,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("sol-out-winnet").textContent = (r.ifWinNet >= 0 ? "+" : "") + fmt(r.ifWinNet, 4) + " SOL";
     document.getElementById("sol-out-losenet").textContent = fmt(r.ifLoseNet, 4) + " SOL";
 
-    document.getElementById("sol-fee-admin").textContent = fmt(r.totalAdminFee, 4) + " SOL";
+    document.getElementById("sol-fee-iadmin").textContent = fmt(r.individualAdminFee, 4) + " SOL";
     document.getElementById("sol-fee-wadmin").textContent = fmt(r.winningsAdminFee, 4) + " SOL";
     document.getElementById("sol-fee-vault").textContent = fmt(r.vaultAmount, 4) + " SOL";
     document.getElementById("sol-fee-final").textContent = fmt(r.finalWinnings, 4) + " SOL";
+    document.getElementById("sol-fee-radmin").textContent = fmt(r.roundAdminFee, 4) + " SOL";
   });
 
   // --- ORE Rewards ---
   wireCalculator("form-ore", calcOreRewards, (r) => {
-    document.getElementById("ore-out-main").textContent = fmt(r.yourSplitShareIfWin, 6) + " ORE";
+    document.getElementById("ore-out-main").textContent = fmt(r.netSplitShareIfWin, 6) + " ORE";
     document.getElementById("ore-out-winprob").textContent = pct(r.winProb, 2);
     document.getElementById("ore-out-share").textContent = pct(r.yourShare, 2);
-    document.getElementById("ore-out-expected").textContent = fmt(r.expectedOrePerRound, 6) + " ORE / round";
+    document.getElementById("ore-out-gross").textContent = fmt(r.grossSplitShareIfWin, 6) + " ORE";
+    document.getElementById("ore-out-claimfee").textContent = "-" + fmt(r.claimFee, 6) + " ORE";
+    document.getElementById("ore-out-expected").textContent = fmt(r.expectedOrePerRoundNet, 6) + " ORE / round";
   });
 
   // --- Motherlode ---
   wireCalculator("form-motherlode", calcMotherlode, (r) => {
-    document.getElementById("ml-out-main").textContent = fmt(r.yourPayoutIfHit, 4) + " ORE";
+    document.getElementById("ml-out-main").textContent = fmt(r.netPayoutIfHit, 4) + " ORE";
     document.getElementById("ml-out-winprob").textContent = pct(r.winProb, 2);
     document.getElementById("ml-out-share").textContent = pct(r.yourShare, 2);
+    document.getElementById("ml-out-gross").textContent = fmt(r.grossPayoutIfHit, 4) + " ORE";
+    document.getElementById("ml-out-claimfee").textContent = "-" + fmt(r.claimFee, 4) + " ORE";
   });
 });

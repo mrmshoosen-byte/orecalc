@@ -119,10 +119,11 @@
         <div><span>If the winner isn't one of yours — net loss</span><span id="sol-out-losenet">—</span></div>
       </div>
       <div class="fee-breakdown">
-        <div><span>Flat admin fee (1% of round total)</span><span id="sol-fee-admin">—</span></div>
+        <div><span>Your 1% fee on your own returned stake</span><span id="sol-fee-iadmin">—</span></div>
         <div><span>Winnings admin fee (1% of losing pool)</span><span id="sol-fee-wadmin">—</span></div>
         <div><span>Vault fee (10% of remaining pool)</span><span id="sol-fee-vault">—</span></div>
         <div><span>Final winnings pool (shared by your winning tile)</span><span id="sol-fee-final">—</span></div>
+        <div><span>Round-wide fee (1% of round total — doesn't affect your payout)</span><span id="sol-fee-radmin">—</span></div>
       </div>
     </div>
   </form>
@@ -137,7 +138,7 @@
       <span class="section__eyebrow">03 / Bonus</span>
       <h2 class="section__title">ORE Rewards</h2>
     </div>
-    <p class="section__desc">This shows what happens in the split scenario specifically: your tile wins, the round pays out as a split (a 1-in-2 chance each round), and the 1 ORE bonus is divided by stake share among everyone on that tile. Enter how many tiles you're covering to see your realistic odds of even getting there.</p>
+    <p class="section__desc">This shows what happens in the split scenario specifically: your tile wins, the round pays out as a split (a 1-in-2 chance each round), and the 1 ORE bonus is divided by stake share among everyone on that tile — then a 10% claim fee applies on top, which is easy to miss but confirmed in the protocol's claim logic.</p>
   </div>
 
   <form class="calc reveal" id="form-ore">
@@ -159,13 +160,15 @@
     </div>
     <div class="calc__output">
       <div class="stat">
-        <div class="stat__label">Your ORE share — <em>if it's a split round and your tile wins</em></div>
+        <div class="stat__label">Your ORE, after the 10% claim fee — <em>if it's a split round and your tile wins</em></div>
         <div class="stat__value" id="ore-out-main">—</div>
       </div>
       <div class="fee-breakdown">
+        <div><span>Gross split share (before claiming)</span><span id="ore-out-gross">—</span></div>
+        <div><span>10% claim fee (taken when you claim)</span><span id="ore-out-claimfee">—</span></div>
         <div><span>Chance a tile you cover wins</span><span id="ore-out-winprob">—</span></div>
         <div><span>Your stake share on that tile</span><span id="ore-out-share">—</span></div>
-        <div><span>Expected ORE per round (probability-weighted)</span><span id="ore-out-expected">—</span></div>
+        <div><span>Expected net ORE per round (probability-weighted)</span><span id="ore-out-expected">—</span></div>
       </div>
     </div>
   </form>
@@ -180,7 +183,7 @@
       <span class="section__eyebrow">04 / Jackpot</span>
       <h2 class="section__title">Motherlode</h2>
     </div>
-    <p class="section__desc">No trigger-odds guesswork — this just answers the direct question: if the Motherlode hits on a round your tile wins, how much of it is yours? Enter the pool size you want to check against (its current known value, or any hypothetical) along with your stake.</p>
+    <p class="section__desc">If the Motherlode hits on a round your tile wins, this shows exactly how much of it is yours — including the 10% claim fee that applies to all ORE payouts, not just Motherlode. Enter the pool size you want to check against (its current known value, or any hypothetical) along with your stake.</p>
   </div>
 
   <form class="calc reveal" id="form-motherlode">
@@ -207,11 +210,13 @@
     </div>
     <div class="calc__output">
       <div class="stat">
-        <div class="stat__label">Your payout — <em>if it hits on a round your tile wins</em></div>
+        <div class="stat__label">Your payout after the 10% claim fee — <em>if it hits on a round your tile wins</em></div>
         <div class="stat__value" id="ml-out-main">—</div>
-        <div class="stat__sub">= pool amount &times; your stake share on the winning tile</div>
+        <div class="stat__sub">= pool amount &times; your stake share, minus the claim fee</div>
       </div>
       <div class="fee-breakdown">
+        <div><span>Gross payout (before claiming)</span><span id="ml-out-gross">—</span></div>
+        <div><span>10% claim fee (taken when you claim)</span><span id="ml-out-claimfee">—</span></div>
         <div><span>Chance a tile you cover wins this round</span><span id="ml-out-winprob">—</span></div>
         <div><span>Your stake share on that tile</span><span id="ml-out-share">—</span></div>
       </div>
