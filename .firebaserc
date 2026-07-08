@@ -2,6 +2,14 @@
   "projects": {
     "orecalc": "orecalc-eadaa"
   },
-  "targets": {},
+  "targets": {
+    "orecalc-eadaa": {
+      "hosting": {
+        "main": [
+          "orecalc"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

@@ -1,0 +1,31 @@
+[debug] [2026-07-08T00:56:27.577Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T00:56:27.579Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Mohammed Sabir\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting:main
+[debug] [2026-07-08T00:56:27.580Z] CLI Version:   15.22.4
+[debug] [2026-07-08T00:56:27.580Z] Platform:      win32
+[debug] [2026-07-08T00:56:27.580Z] Node Version:  v24.11.1
+[debug] [2026-07-08T00:56:27.580Z] Detected Agent: unknown
+[debug] [2026-07-08T00:56:27.580Z] Time:          Wed Jul 08 2026 02:56:27 GMT+0200 (South Africa Standard Time)
+[debug] [2026-07-08T00:56:27.580Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T00:56:29.741Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T00:56:29.741Z] > authorizing via signed-in user (mr.m.s.hoosen@gmail.com)
+[debug] [2026-07-08T00:56:29.741Z] [iam] checking project orecalc-eadaa for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-07-08T00:56:29.742Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:29.742Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:29.743Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/orecalc-eadaa:testIamPermissions [none]
+[debug] [2026-07-08T00:56:29.743Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/orecalc-eadaa:testIamPermissions  x-goog-user-project=orecalc-eadaa
+[debug] [2026-07-08T00:56:29.743Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/orecalc-eadaa:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-07-08T00:56:31.390Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/orecalc-eadaa:testIamPermissions 200
+[debug] [2026-07-08T00:56:31.391Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/orecalc-eadaa:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-07-08T00:56:31.391Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:31.391Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:31.391Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/orecalc-eadaa [none]
+[debug] [2026-07-08T00:56:32.060Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/orecalc-eadaa 200
+[debug] [2026-07-08T00:56:32.060Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/orecalc-eadaa {"projectId":"orecalc-eadaa","projectNumber":"1016921056553","displayName":"orecalc","name":"projects/orecalc-eadaa","resources":{"hostingSite":"orecalc-eadaa"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_94d3e3de-9c2e-4e38-801c-19fabfb12b31"}
+[info] 
+[info] === Deploying to 'orecalc-eadaa'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-07-08T00:56:32.064Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:32.064Z] Checked if tokens are valid: true, expires at: 1783474405959
+[debug] [2026-07-08T00:56:32.064Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/orecalc-eadaa/sites/orecalc [none]
