@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css" />
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
 </head>
 <body>
 <div class="grain"></div>
@@ -34,6 +35,40 @@
   </div>
   <div class="scroll-cue"><div class="line"></div>SCROLL</div>
 </header>
+
+<section class="mode-bar reveal">
+  <div class="mode-bar__inner">
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="manual">Manual</button>
+      <button class="mode-btn" data-mode="previous">Previous Round</button>
+    </div>
+    <div id="snapshot-panel" style="display:none;">
+      <div class="snapshot-head">
+        <span class="snapshot-round" id="snapshot-round-number">—</span>
+        <span class="snapshot-status" id="snapshot-status">—</span>
+      </div>
+      <div class="snapshot-grid">
+        <button class="snap-stat active" id="snap-winning">
+          <span class="snap-label">Winning tile</span>
+          <span class="snap-value">—</span>
+        </button>
+        <button class="snap-stat" id="snap-highest">
+          <span class="snap-label">Highest tile</span>
+          <span class="snap-value">—</span>
+        </button>
+        <button class="snap-stat" id="snap-lowest">
+          <span class="snap-label">Lowest tile</span>
+          <span class="snap-value">—</span>
+        </button>
+        <button class="snap-stat" id="snap-average">
+          <span class="snap-label">Average tile</span>
+          <span class="snap-value">—</span>
+        </button>
+      </div>
+      <p class="snapshot-hint">Click any figure to use it as the "tile total" across all calculators below.</p>
+    </div>
+  </div>
+</section>
 
 <!-- ============================================================
      SOLO CHANCE
@@ -226,7 +261,7 @@
 
 <section class="donate-teaser reveal">
   <h2 class="section__title" style="font-size: 28px;">Built free. Kept free.</h2>
-  <p>This developer resides in a location with limited resources. Consider helping them with SOL to help them mine while supporting the project and future projects.</p>
+  <p>OreCalc is an independent, unofficial tool — not affiliated with Regolith Labs. If it saved you some guesswork, consider chipping in.</p>
   <a class="btn btn--solid" href="donations.html">Go to donations</a>
 </section>
 
@@ -235,7 +270,10 @@
   <p>&copy; <span id="year"></span> OreCalc</p>
 </footer>
 
+<script src="js/config.js"></script>
+<script src="js/onchain.js"></script>
 <script src="js/script.js"></script>
 <script src="js/calculators.js"></script>
+<script src="js/mode.js"></script>
 </body>
 </html>
