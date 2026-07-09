@@ -99,42 +99,59 @@ function deriveRoundPda(roundNumber) {
   return pda.toBase58();
 }
 
-// Self-validating Round decoder. Tries each candidate offset for where
-// deployed[25] begins, and only accepts it if sum(deployed) exactly
-// equals the total_deployed field found immediately after the array —
-// a real invariant, not a guess.
+// ------------------------------------------------------------
+// CONFIRMED from a real decoded Round account (round #327123):
+//   bytes 0-8:   discriminator (first byte = 109, rest zero-padded)
+//   bytes 8-16:  round_number, u64 LE  (decoded to 327123 — verified exact match)
+//   bytes 16+:   deployed[25], u64 LE  (values ~0.5-0.65 SOL each — plausible)
+// NOT yet confirmed: exactly where total_deployed sits after the array —
+// rather than guess an offset, we scan forward from where the array ends
+// and accept the first u64 that exactly equals sum(deployed). This can't
+// pass by accident, so once found it's a confirmed, not guessed, position.
+// ------------------------------------------------------------
+const HEADER_BYTES = 16;
+const DEPLOYED_ARRAY_BYTES = 25 * 8;
+const DEPLOYED_ARRAY_END = HEADER_BYTES + DEPLOYED_ARRAY_BYTES; // 216
+const TOTAL_DEPLOYED_SCAN_WINDOW = 128; // how far past the array to search
+
 function decodeRoundBytes(bytes) {
-  for (const offset of CANDIDATE_OFFSETS) {
-    const arrayStart = offset;
-    const arrayBytes = 25 * 8;
-    const totalOffset = arrayStart + arrayBytes;
-    const winningSquareOffset = totalOffset + 8;
+  if (bytes.length < DEPLOYED_ARRAY_END + 8) return null;
 
-    if (winningSquareOffset + 1 > bytes.length) continue;
+  const deployed = [];
+  let sum = 0n;
+  for (let i = 0; i < 25; i++) {
+    const v = readU64LE(bytes, HEADER_BYTES + i * 8);
+    deployed.push(v);
+    sum += v;
+  }
 
-    const deployed = [];
-    let sum = 0n;
-    for (let i = 0; i < 25; i++) {
-      const v = readU64LE(bytes, arrayStart + i * 8);
-      deployed.push(v);
-      sum += v;
-    }
-    const totalDeployed = readU64LE(bytes, totalOffset);
-
-    if (sum === totalDeployed && totalDeployed > 0n) {
-      const winningSquare = bytes[winningSquareOffset];
-      if (winningSquare >= 0 && winningSquare < 25) {
-        // Found a self-consistent layout.
-        let motherlode = null;
-        const motherlodeOffset = winningSquareOffset + 8; // best-effort, unverified
-        if (motherlodeOffset + 8 <= bytes.length) {
-          motherlode = readU64LE(bytes, motherlodeOffset);
+  // Search forward for a u64 that exactly matches the sum — this is how
+  // we locate total_deployed without needing to know the exact struct
+  // layout in between.
+  const scanEnd = Math.min(DEPLOYED_ARRAY_END + TOTAL_DEPLOYED_SCAN_WINDOW, bytes.length - 8);
+  for (let offset = DEPLOYED_ARRAY_END; offset <= scanEnd; offset++) {
+    const candidate = readU64LE(bytes, offset);
+    if (candidate === sum && sum > 0n) {
+      // Found total_deployed. winning_square is very likely the next
+      // small value (0-24) shortly after — scan a short window for it.
+      for (let wOffset = offset + 8; wOffset < Math.min(offset + 16, bytes.length); wOffset++) {
+        if (bytes[wOffset] < 25) {
+          return {
+            deployed,
+            totalDeployed: sum,
+            winningSquare: bytes[wOffset],
+            motherlode: null, // not yet confirmed — see README note
+            totalDeployedOffset: offset,
+            winningSquareOffset: wOffset,
+          };
         }
-        return { deployed, totalDeployed, winningSquare, motherlode, offsetUsed: offset };
       }
+      // Total found but couldn't confirm winning_square nearby — still
+      // useful data, return it with winning_square unknown.
+      return { deployed, totalDeployed: sum, winningSquare: null, motherlode: null, totalDeployedOffset: offset };
     }
   }
-  return null; // nothing validated — caller should fall back to manual
+  return null;
 }
 
 function bytesToHex(bytes) {
@@ -150,13 +167,18 @@ async function fetchPreviousRoundData() {
   if (!bytes) throw new Error("Previous round account not found (may have been closed already)");
 
   const decoded = decodeRoundBytes(bytes);
-  if (!decoded) {
-    const debugErr = new Error("Could not confidently decode previous round data — layout unverified");
+  if (!decoded || decoded.winningSquare === null) {
+    const debugErr = new Error(
+      decoded
+        ? "Found total_deployed but couldn't locate winning_square nearby"
+        : "Could not confidently decode previous round data — layout unverified"
+    );
     debugErr.debugInfo = {
       pda,
       roundNumber: previousRoundNumber.toString(),
       byteLength: bytes.length,
-      hexDump: bytesToHex(bytes.slice(0, 120)),
+      hexDump: bytesToHex(bytes),
+      partialDecode: decoded,
     };
     throw debugErr;
   }

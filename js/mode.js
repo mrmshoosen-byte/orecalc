@@ -85,13 +85,20 @@ function showDebugInfo(info) {
     box.className = "debug-box";
     document.getElementById("snapshot-panel").appendChild(box);
   }
+  let partial = "";
+  if (info.partialDecode) {
+    partial =
+      "Total deployed found: " + (Number(info.partialDecode.totalDeployed) / 1e9).toFixed(4) + " SOL " +
+      "(at byte offset " + info.partialDecode.totalDeployedOffset + ")\n";
+  }
   box.innerHTML =
     "<p>Copy everything below and send it back — this is enough to fix the decoder:</p>" +
     "<pre>" +
     "Round PDA: " + info.pda + "\n" +
     "Round number: " + info.roundNumber + "\n" +
     "Byte length: " + info.byteLength + "\n" +
-    "First 120 bytes (hex):\n" + info.hexDump +
+    partial +
+    "Full bytes (hex):\n" + info.hexDump +
     "</pre>";
 }
 
