@@ -526,6 +526,17 @@ footer .disclaimer { max-width: 640px; margin: 0 auto 18px; line-height: 1.7; }
 .snap-value { font-family: var(--font-mono); font-size: 15px; color: var(--white); font-weight: 700; }
 .snapshot-hint { font-size: 12px; color: var(--gray-500); text-align: center; margin-top: 14px; }
 
+.debug-box {
+  margin-top: 20px;
+  border: 1px dashed var(--line);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-300);
+}
+.debug-box p { margin: 0 0 10px; color: var(--gray-500); }
+.debug-box pre { white-space: pre-wrap; word-break: break-all; margin: 0; color: var(--white); }
+
 @media (max-width: 640px) {
   .snapshot-grid { grid-template-columns: repeat(2, 1fr); }
 }

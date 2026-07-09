@@ -69,10 +69,35 @@ async function refreshPreviousRound() {
       renderSnapshot(data);
     }
     setSnapshotStatus("Updated just now · refreshes every 20s");
+    hideDebugInfo();
   } catch (err) {
     console.error(err);
     setSnapshotStatus("Couldn't load live data (" + err.message + ") — switch to Manual to keep using the calculators.", true);
+    if (err.debugInfo) showDebugInfo(err.debugInfo);
   }
+}
+
+function showDebugInfo(info) {
+  let box = document.getElementById("debug-box");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "debug-box";
+    box.className = "debug-box";
+    document.getElementById("snapshot-panel").appendChild(box);
+  }
+  box.innerHTML =
+    "<p>Copy everything below and send it back — this is enough to fix the decoder:</p>" +
+    "<pre>" +
+    "Round PDA: " + info.pda + "\n" +
+    "Round number: " + info.roundNumber + "\n" +
+    "Byte length: " + info.byteLength + "\n" +
+    "First 120 bytes (hex):\n" + info.hexDump +
+    "</pre>";
+}
+
+function hideDebugInfo() {
+  const box = document.getElementById("debug-box");
+  if (box) box.remove();
 }
 
 function startPolling() {

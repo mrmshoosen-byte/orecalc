@@ -137,6 +137,10 @@ function decodeRoundBytes(bytes) {
   return null; // nothing validated — caller should fall back to manual
 }
 
+function bytesToHex(bytes) {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join(" ");
+}
+
 // Public entry point: fetch and decode the most recently completed round.
 async function fetchPreviousRoundData() {
   const currentRoundNumber = await getCurrentRoundNumber();
@@ -146,7 +150,16 @@ async function fetchPreviousRoundData() {
   if (!bytes) throw new Error("Previous round account not found (may have been closed already)");
 
   const decoded = decodeRoundBytes(bytes);
-  if (!decoded) throw new Error("Could not confidently decode previous round data — layout unverified");
+  if (!decoded) {
+    const debugErr = new Error("Could not confidently decode previous round data — layout unverified");
+    debugErr.debugInfo = {
+      pda,
+      roundNumber: previousRoundNumber.toString(),
+      byteLength: bytes.length,
+      hexDump: bytesToHex(bytes.slice(0, 120)),
+    };
+    throw debugErr;
+  }
 
   const deployedSol = decoded.deployed.map((v) => Number(v) / LAMPORTS_PER_SOL);
   const totalDeployedSol = Number(decoded.totalDeployed) / LAMPORTS_PER_SOL;
