@@ -1,29 +1,22 @@
-// ============================================================
-// OreCalc — Protocol math (v2)
-// Formulas derived directly from regolith-labs/ore:
-//   - program/src/reset.rs   (fee + reward distribution on round reset)
-//   - api/src/consts.rs      (ADMIN_FEE_BPS = 100 -> 1%)
-// Anything not confirmed directly in source is marked CONFIG below
-// and can be edited in one place if Regolith's live values differ.
-// ============================================================
+
 
 const ORE_CONFIG = {
-  SQUARES: 25,                 // 5x5 board
-  ROUND_ADMIN_FEE: 0.01,       // 1% of the whole round's total deployed — paid from the round's escrow
-                                // to the fee collector separately (reset.rs). Confirmed NOT to reduce an
-                                // individual miner's own payout — shown as informational only.
-  INDIVIDUAL_ADMIN_FEE: 0.01,  // 1% taken off YOUR OWN returned stake specifically, per miner, on claim
-                                // (checkpoint.rs: admin_fee = (deployed/100).max(1)). This DOES reduce
-                                // what you personally get back — easy to miss, confirmed from source.
-  WINNINGS_ADMIN_FEE: 0.01,    // 1%, applied to the losing-tiles pool (reset.rs)
-  VAULT_FEE: 0.10,             // 10%, applied to the losing-tiles pool after its own admin fee (reset.rs)
-  SPLIT_ODDS: 0.5,             // confirmed in reset.rs comment: 1-in-2 odds the ORE bonus is split vs solo
-  BONUS_ORE_PER_ROUND: 1,      // ORE bonus at stake each round (reset.rs: mint_amount, capped near max supply)
-  MOTHERLODE_PER_ROUND: 0.2,   // ORE added to the Motherlode pool per round (reset.rs: motherlode_mint_amount)
-  ORE_CLAIM_FEE: 0.10,         // 10% taken off ANY ORE (bonus, split, or Motherlode) when you actually claim
-                                // it — redistributed to other miners who haven't claimed yet (miner.rs:
-                                // claim_ore). Applies whenever treasury.total_unclaimed > 0, which in
-                                // practice is essentially always. This was previously missing entirely.
+  SQUARES: 25,                 
+  ROUND_ADMIN_FEE: 0.01,       
+                            
+                                
+  INDIVIDUAL_ADMIN_FEE: 0.01,  
+                                
+                                
+  WINNINGS_ADMIN_FEE: 0.01,    
+  VAULT_FEE: 0.10,            
+  SPLIT_ODDS: 0.5,            
+  BONUS_ORE_PER_ROUND: 1,      
+  MOTHERLODE_PER_ROUND: 0.2,  
+  ORE_CLAIM_FEE: 0.10,         
+                              
+                                
+                              
 };
 
 function fmt(n, decimals = 4) {
