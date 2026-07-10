@@ -109,49 +109,57 @@ function deriveRoundPda(roundNumber) {
 // and accept the first u64 that exactly equals sum(deployed). This can't
 // pass by accident, so once found it's a confirmed, not guessed, position.
 // ------------------------------------------------------------
-const HEADER_BYTES = 16;
+const HEADER_BYTES = 16; // discriminator(8) + round_number(8) — confirmed exact against real data (round #327133)
 const DEPLOYED_ARRAY_BYTES = 25 * 8;
-const DEPLOYED_ARRAY_END = HEADER_BYTES + DEPLOYED_ARRAY_BYTES; // 216
-const TOTAL_DEPLOYED_SCAN_WINDOW = 128; // how far past the array to search
+const DEPLOYED_ARRAY_END = HEADER_BYTES + DEPLOYED_ARRAY_BYTES; // 216, confirmed
 
+// Exact integer fee cascade — mirrors reset.rs using BigInt floor division,
+// matching Rust's u64 integer division exactly (no floating point).
+function feeCascadeExact(L) {
+  const winningsAdminFee = L / 100n;
+  const afterAdmin = L - winningsAdminFee;
+  const vault = afterAdmin / 10n;
+  return afterAdmin - vault; // final_winnings
+}
+
+// CONFIRMED METHOD (validated against real round #327133, offset 904):
+// the exact stored total_deployed field doesn't seem to persist post-reset,
+// but round.total_winnings does. Rather than guess its offset (which isn't
+// fixed relative to the array — likely because a variable amount of
+// per-square metadata sits between them), we compute what final_winnings
+// WOULD be for each of the 25 possible winning squares using the exact fee
+// formula, then search the whole account for a stored u64 that matches one
+// of them exactly. A match can't happen by chance — it's a live signature
+// of the actual on-chain fee math — so whichever square matches IS the
+// winning square, found and verified in the same step.
 function decodeRoundBytes(bytes) {
   if (bytes.length < DEPLOYED_ARRAY_END + 8) return null;
 
   const deployed = [];
-  let sum = 0n;
+  let totalDeployed = 0n;
   for (let i = 0; i < 25; i++) {
     const v = readU64LE(bytes, HEADER_BYTES + i * 8);
     deployed.push(v);
-    sum += v;
+    totalDeployed += v;
   }
 
-  // Search forward for a u64 that exactly matches the sum — this is how
-  // we locate total_deployed without needing to know the exact struct
-  // layout in between.
-  const scanEnd = Math.min(DEPLOYED_ARRAY_END + TOTAL_DEPLOYED_SCAN_WINDOW, bytes.length - 8);
-  for (let offset = DEPLOYED_ARRAY_END; offset <= scanEnd; offset++) {
-    const candidate = readU64LE(bytes, offset);
-    if (candidate === sum && sum > 0n) {
-      // Found total_deployed. winning_square is very likely the next
-      // small value (0-24) shortly after — scan a short window for it.
-      for (let wOffset = offset + 8; wOffset < Math.min(offset + 16, bytes.length); wOffset++) {
-        if (bytes[wOffset] < 25) {
-          return {
-            deployed,
-            totalDeployed: sum,
-            winningSquare: bytes[wOffset],
-            motherlode: null, // not yet confirmed — see README note
-            totalDeployedOffset: offset,
-            winningSquareOffset: wOffset,
-          };
-        }
-      }
-      // Total found but couldn't confirm winning_square nearby — still
-      // useful data, return it with winning_square unknown.
-      return { deployed, totalDeployed: sum, winningSquare: null, motherlode: null, totalDeployedOffset: offset };
+  const candidates = deployed.map((d) => feeCascadeExact(totalDeployed - d));
+
+  for (let offset = DEPLOYED_ARRAY_END; offset <= bytes.length - 8; offset++) {
+    const value = readU64LE(bytes, offset);
+    if (value === 0n) continue;
+    const winningSquare = candidates.findIndex((c) => c === value);
+    if (winningSquare !== -1) {
+      return {
+        deployed,
+        totalDeployed,
+        winningSquare,
+        totalWinnings: value,
+        totalWinningsOffset: offset,
+      };
     }
   }
-  return null;
+  return null; // round likely not yet finalized, or genuinely undecodable
 }
 
 function bytesToHex(bytes) {
@@ -167,18 +175,15 @@ async function fetchPreviousRoundData() {
   if (!bytes) throw new Error("Previous round account not found (may have been closed already)");
 
   const decoded = decodeRoundBytes(bytes);
-  if (!decoded || decoded.winningSquare === null) {
+  if (!decoded) {
     const debugErr = new Error(
-      decoded
-        ? "Found total_deployed but couldn't locate winning_square nearby"
-        : "Could not confidently decode previous round data — layout unverified"
+      "Could not find a matching winnings value for any of the 25 squares — round may not be finalized yet, or layout differs"
     );
     debugErr.debugInfo = {
       pda,
       roundNumber: previousRoundNumber.toString(),
       byteLength: bytes.length,
       hexDump: bytesToHex(bytes),
-      partialDecode: decoded,
     };
     throw debugErr;
   }
@@ -189,7 +194,6 @@ async function fetchPreviousRoundData() {
   const highestTile = Math.max(...deployedSol);
   const lowestTile = Math.min(...deployedSol.filter((v) => v > 0));
   const avgTile = deployedSol.reduce((a, b) => a + b, 0) / deployedSol.length;
-  const motherlodeOre = decoded.motherlode !== null ? Number(decoded.motherlode) / ORE_DECIMALS : null;
 
   return {
     roundNumber: previousRoundNumber.toString(),
@@ -199,6 +203,5 @@ async function fetchPreviousRoundData() {
     highestTile,
     lowestTile,
     avgTile,
-    motherlodeOre,
   };
 }
