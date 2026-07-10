@@ -1,8 +1,4 @@
-// ============================================================
-// OreCalc — Ambient VFX & interaction
-// ============================================================
 
-// ---- Build the animated 5x5 grid (used in hero + mini-icons) ----
 function buildHeroGrid() {
   const container = document.getElementById("hero-grid");
   if (!container) return;
