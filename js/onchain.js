@@ -1,26 +1,4 @@
-// ============================================================
-// OreCalc — On-chain data (Previous Round mode)
-// ============================================================
-// Confirmed for real, from a live transaction inspected on Solscan:
-//   Program ID:  oreV3EG1i9BEgiAJ8b177Z2S2rMarzak4NMv1kULvWv
-//   Board:       BrcSxdp1nXFzou1YyDnQJcPNBNHgoypZmTsyKBSLLXzi
-//   Round PDA seed: "round" (+ round number, u64 LE) — standard PDA pattern
-//
-// IMPORTANT — read this before debugging a wrong number:
-// The exact byte layout of the Round account (field order, whether
-// there's a leading discriminator, how many bytes it is) is NOT
-// confirmed against live data — no public IDL was found for this
-// program. To stay honest instead of guessing silently, the decoder
-// below is SELF-VALIDATING: it only accepts a byte offset if the sum
-// of all 25 tiles' deployed amounts exactly equals the account's own
-// total_deployed field — a real on-chain invariant that can't hold by
-// accident. If no offset satisfies it, decoding fails loudly instead
-// of quietly showing a wrong number.
-//
-// If live results still look off vs ore.com or the community tracker
-// at ore-mining-tracker.replit.app, that's the first place to look —
-// CANDIDATE_OFFSETS below is the one place to add a new guess.
-// ============================================================
+
 
 const ORE_PROGRAM_ID = "oreV3EG1i9BEgiAJ8b177Z2S2rMarzak4NMv1kULvWv";
 const ORE_BOARD_ADDRESS = "BrcSxdp1nXFzou1YyDnQJcPNBNHgoypZmTsyKBSLLXzi";
