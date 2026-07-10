@@ -1,10 +1,4 @@
-// ============================================================
-// OreCalc — Mode switch (Manual / Previous Round)
-// ============================================================
 
-// Every field, across all four calculators, that represents
-// "total deployed on the tile, including you" — these get locked
-// and auto-filled together in Previous Round mode.
 const TILE_TOTAL_FIELD_IDS = [
   "solo-block-total",
   "sol-tile-total",
