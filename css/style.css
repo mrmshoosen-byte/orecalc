@@ -1,4 +1,6 @@
-
+/* ============================================================
+   OreCalc — Design Tokens
+   ============================================================ */
 :root {
   --black: #000000;
   --near-black: #0a0a0a;
@@ -600,8 +602,26 @@ footer .disclaimer { max-width: 640px; margin: 0 auto 18px; line-height: 1.7; }
   border-bottom: 1px solid var(--black);
 }
 @media (max-width: 640px) {
+  .donor-banner {
+    height: auto;
+    min-height: 48px;
+  }
+  .donor-banner__inner {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    padding: 8px 16px;
+  }
   .donor-banner__cta { display: none; }
-  .donor-banner__text { max-width: 72vw; }
+  .donor-banner__text {
+    max-width: calc(100% - 16px);
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: center;
+  }
+  .nav { top: 48px; }
 }
 @keyframes pulse-dot-dark {
   0%, 100% { opacity: 1; }
