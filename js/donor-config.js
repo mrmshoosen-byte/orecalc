@@ -12,5 +12,7 @@
 // ============================================================
 
 const FEATURED_DONORS = [
-  { name: "OreCalc", message: "Thanks for using OreCalc — be the first featured donor!" },
+  { name: "OreCalc", message: "Thanks for using OreCalc — Donate to Appear here!" },
+   { name: "Wildd", message: "Come mine with us on Orestack.app" },
 ];
+
