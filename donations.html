@@ -22,27 +22,54 @@
   <a class="nav__cta" href="index.html">Back Home</a>
 </nav>
 
-<header class="hero" style="min-height: 60vh; padding-top: 160px;">
+<header class="hero" style="min-height: 60vh; padding-top: 198px;">
   <div class="hero__grid-bg" id="hero-grid" style="opacity:0.5;"></div>
   <span class="hero__kicker">Support the project</span>
   <h1 class="hero__title" style="font-size: clamp(36px, 7vw, 72px);">DONATE</h1>
-  <p class="hero__sub">OreCalc is free, unofficial, and built in spare time to make ORE's odds and payouts easy to reason about before you deploy real SOL. If it's been useful, a donation goes straight toward keeping it maintained and accurate as the protocol changes while helping the developer mine.</p>
+  <p class="hero__sub">OreCalc is free, unofficial, and built in spare time to make ORE's odds and payouts easy to reason about before you deploy real SOL. If it's been useful, a donation goes straight toward keeping it maintained and accurate as the protocol changes.</p>
 </header>
 
 <section class="section" style="border-bottom: none; padding-top: 0;">
   <div class="wallet-box reveal">
     <span class="section__eyebrow">Solana Wallet</span>
-    <p style="color: var(--gray-300); margin: 10px 0 0;">Send SOL, ORE, or any SPL token to the address below. Dev note : From the bottom of my heart thank you for your kindness</p>
-    <div class="addr" id="wallet-address">5b5om8qu2WrLepZ9ooTZB3Fh4WJNH7gDkEieWyHSb3uU</div>
+    <p style="color: var(--gray-300); margin: 10px 0 0;">Send SOL, ORE, or any SPL token to the address below.</p>
+    <div class="addr" id="wallet-address">YOUR_SOL_WALLET_ADDRESS_HERE</div>
     <button class="copy-btn" id="copy-btn">Copy Address</button>
+  </div>
+
+  <div class="wallet-box reveal" style="margin-top: 32px; text-align: left;">
+    <span class="section__eyebrow" style="text-align:center; display:block;">Leave a message</span>
+    <p style="color: var(--gray-300); margin: 10px 0 24px; text-align:center;">Donated already? Submit your transaction and a short message — approved messages get pinned at the top of the site.</p>
+    <form id="donor-message-form">
+      <div class="field">
+        <label for="donor-name">Your name</label>
+        <input type="text" id="donor-name" maxlength="40" required />
+      </div>
+      <div class="field">
+        <label for="donor-message">Message</label>
+        <input type="text" id="donor-message" maxlength="120" required />
+        <span class="hint">Keep it short — long messages get cut off in the banner.</span>
+      </div>
+      <div class="field">
+        <label for="donor-signature">Transaction signature</label>
+        <input type="text" id="donor-signature" required />
+        <span class="hint">The signature from your donation transaction (found on Solscan).</span>
+      </div>
+      <button type="submit" class="btn btn--solid" style="width:100%;">Submit</button>
+      <p id="donor-form-status" style="text-align:center; margin-top:14px; font-family: var(--font-mono); font-size: 12px; color: var(--gray-300);"></p>
+    </form>
   </div>
 </section>
 
 <footer>
-  <p class="disclaimer">OreCalc is an unofficial, community-built calculator, not affiliated with or endorsed by Regolith Labs. Donations support development and hosting only along with future ore projects.</p>
+  <p class="disclaimer">OreCalc is an unofficial, community-built calculator, not affiliated with or endorsed by Regolith Labs. Donations support development and hosting only.</p>
   <p>&copy; <span id="year"></span> OreCalc</p>
 </footer>
 
+<script src="js/donor-config.js"></script>
+<script src="js/donor-banner.js"></script>
+<script src="js/donor-form-config.js"></script>
+<script src="js/donor-form.js"></script>
 <script src="js/script.js"></script>
 <script>
   document.getElementById("copy-btn").addEventListener("click", () => {
