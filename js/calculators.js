@@ -1,22 +1,29 @@
-
+// ============================================================
+// OreCalc — Protocol math (v2)
+// Formulas derived directly from regolith-labs/ore:
+//   - program/src/reset.rs   (fee + reward distribution on round reset)
+//   - api/src/consts.rs      (ADMIN_FEE_BPS = 100 -> 1%)
+// Anything not confirmed directly in source is marked CONFIG below
+// and can be edited in one place if Regolith's live values differ.
+// ============================================================
 
 const ORE_CONFIG = {
-  SQUARES: 25,                 
-  ROUND_ADMIN_FEE: 0.01,       
-                            
-                                
-  INDIVIDUAL_ADMIN_FEE: 0.01,  
-                                
-                                
-  WINNINGS_ADMIN_FEE: 0.01,    
-  VAULT_FEE: 0.10,            
-  SPLIT_ODDS: 0.5,            
-  BONUS_ORE_PER_ROUND: 1,      
-  MOTHERLODE_PER_ROUND: 0.2,  
-  ORE_CLAIM_FEE: 0.10,         
-                              
-                                
-                              
+  SQUARES: 25,                 // 5x5 board
+  ROUND_ADMIN_FEE: 0.01,       // 1% of the whole round's total deployed — paid from the round's escrow
+                                // to the fee collector separately (reset.rs). Confirmed NOT to reduce an
+                                // individual miner's own payout — shown as informational only.
+  INDIVIDUAL_ADMIN_FEE: 0.01,  // 1% taken off YOUR OWN returned stake specifically, per miner, on claim
+                                // (checkpoint.rs: admin_fee = (deployed/100).max(1)). This DOES reduce
+                                // what you personally get back — easy to miss, confirmed from source.
+  WINNINGS_ADMIN_FEE: 0.01,    // 1%, applied to the losing-tiles pool (reset.rs)
+  VAULT_FEE: 0.10,             // 10%, applied to the losing-tiles pool after its own admin fee (reset.rs)
+  SPLIT_ODDS: 0.5,             // confirmed in reset.rs comment: 1-in-2 odds the ORE bonus is split vs solo
+  BONUS_ORE_PER_ROUND: 1,      // ORE bonus at stake each round (reset.rs: mint_amount, capped near max supply)
+  MOTHERLODE_PER_ROUND: 0.2,   // ORE added to the Motherlode pool per round (reset.rs: motherlode_mint_amount)
+  ORE_CLAIM_FEE: 0.10,         // 10% taken off ANY ORE (bonus, split, or Motherlode) when you actually claim
+                                // it — redistributed to other miners who haven't claimed yet (miner.rs:
+                                // claim_ore). Applies whenever treasury.total_unclaimed > 0, which in
+                                // practice is essentially always. This was previously missing entirely.
 };
 
 function fmt(n, decimals = 4) {
@@ -178,9 +185,27 @@ function calcMotherlode(yourStakePerTile, numTiles, tileTotal, mlAmount) {
   };
 }
 
-// ============================================================
-// Wiring: form -> output
-// ============================================================
+// ------------------------------------------------------------
+// 5) UNREFINED YIELD
+// Confirmed from treasury.rs: every ORE claim pays a 10% fee that gets
+// redistributed across everyone's unclaimed ("unrefined") balance,
+// proportional to size (miner_rewards_factor accumulator).
+//   yourShare = yourBalance / totalUnclaimedPool
+//   yieldEarned = (othersClaim * 0.10) * yourShare
+// Then compares claiming now vs. waiting — since YOUR eventual claim
+// also pays the same 10% fee, whether now or later.
+// ------------------------------------------------------------
+function calcUnrefinedYield(yourBalance, othersClaim, totalPool) {
+  const yourShare = totalPool > 0 ? yourBalance / totalPool : 0;
+  const yieldEarned = othersClaim * ORE_CONFIG.ORE_CLAIM_FEE * yourShare;
+
+  const claimNowAmount = yourBalance * (1 - ORE_CONFIG.ORE_CLAIM_FEE);
+  const balanceAfterWaiting = yourBalance + yieldEarned;
+  const claimLaterAmount = balanceAfterWaiting * (1 - ORE_CONFIG.ORE_CLAIM_FEE);
+  const diff = claimLaterAmount - claimNowAmount;
+
+  return { yourShare, yieldEarned, claimNowAmount, claimLaterAmount, diff };
+}
 function wireCalculator(formId, computeFn, render) {
   const form = document.getElementById(formId);
   if (!form) return;
@@ -240,5 +265,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("ml-out-share").textContent = pct(r.yourShare, 2);
     document.getElementById("ml-out-gross").textContent = fmt(r.grossPayoutIfHit, 4) + " ORE";
     document.getElementById("ml-out-claimfee").textContent = "-" + fmt(r.claimFee, 4) + " ORE";
+  });
+
+  // --- Unrefined Yield ---
+  wireCalculator("form-unrefined", calcUnrefinedYield, (r) => {
+    document.getElementById("unref-out-yield").textContent = "+" + fmt(r.yieldEarned, 6) + " ORE";
+    document.getElementById("unref-out-share").textContent = pct(r.yourShare, 4);
+    document.getElementById("unref-out-claimnow").textContent = fmt(r.claimNowAmount, 6) + " ORE";
+    document.getElementById("unref-out-claimlater").textContent = fmt(r.claimLaterAmount, 6) + " ORE";
+    const diffEl = document.getElementById("unref-out-diff");
+    diffEl.textContent = (r.diff >= 0 ? "+" : "") + fmt(r.diff, 6) + " ORE";
   });
 });
