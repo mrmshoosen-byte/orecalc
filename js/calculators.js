@@ -186,25 +186,25 @@ function calcMotherlode(yourStakePerTile, numTiles, tileTotal, mlAmount) {
 }
 
 // ------------------------------------------------------------
-// 5) UNREFINED YIELD
-// Confirmed from treasury.rs: every ORE claim pays a 10% fee that gets
-// redistributed across everyone's unclaimed ("unrefined") balance,
-// proportional to size (miner_rewards_factor accumulator).
-//   yourShare = yourBalance / totalUnclaimedPool
-//   yieldEarned = (othersClaim * 0.10) * yourShare
-// Then compares claiming now vs. waiting — since YOUR eventual claim
-// also pays the same 10% fee, whether now or later.
+// 5) UNREFINED YIELD (simple compounding projection)
+// Confirmed from treasury.rs: unclaimed ("unrefined") ORE passively
+// earns a cut of the 10% fee redistributed every time someone else
+// claims. Rather than asking users for network-wide pool size and
+// claim-rate assumptions (too technical, unknowable precisely), this
+// takes a single estimated annual yield rate and compounds daily —
+// same style as a standard interest calculator: principal in, rate,
+// time horizon, projected total out.
 // ------------------------------------------------------------
-function calcUnrefinedYield(yourBalance, othersClaim, totalPool) {
-  const yourShare = totalPool > 0 ? yourBalance / totalPool : 0;
-  const yieldEarned = othersClaim * ORE_CONFIG.ORE_CLAIM_FEE * yourShare;
+const HORIZON_DAYS = { "1d": 1, "1w": 7, "1m": 30, "6m": 182, "1y": 365 };
 
-  const claimNowAmount = yourBalance * (1 - ORE_CONFIG.ORE_CLAIM_FEE);
-  const balanceAfterWaiting = yourBalance + yieldEarned;
-  const claimLaterAmount = balanceAfterWaiting * (1 - ORE_CONFIG.ORE_CLAIM_FEE);
-  const diff = claimLaterAmount - claimNowAmount;
+function calcUnrefinedYield(yourBalance, annualRatePct, days) {
+  const annualRate = annualRatePct / 100;
+  const dailyRate = Math.pow(1 + annualRate, 1 / 365) - 1;
+  const projectedBalance = yourBalance * Math.pow(1 + dailyRate, days);
+  const yieldEarned = projectedBalance - yourBalance;
+  const effectiveRateForPeriod = yourBalance > 0 ? yieldEarned / yourBalance : 0;
 
-  return { yourShare, yieldEarned, claimNowAmount, claimLaterAmount, diff };
+  return { projectedBalance, yieldEarned, effectiveRateForPeriod };
 }
 function wireCalculator(formId, computeFn, render) {
   const form = document.getElementById(formId);
@@ -267,13 +267,32 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("ml-out-claimfee").textContent = "-" + fmt(r.claimFee, 4) + " ORE";
   });
 
-  // --- Unrefined Yield ---
-  wireCalculator("form-unrefined", calcUnrefinedYield, (r) => {
-    document.getElementById("unref-out-yield").textContent = "+" + fmt(r.yieldEarned, 6) + " ORE";
-    document.getElementById("unref-out-share").textContent = pct(r.yourShare, 4);
-    document.getElementById("unref-out-claimnow").textContent = fmt(r.claimNowAmount, 6) + " ORE";
-    document.getElementById("unref-out-claimlater").textContent = fmt(r.claimLaterAmount, 6) + " ORE";
-    const diffEl = document.getElementById("unref-out-diff");
-    diffEl.textContent = (r.diff >= 0 ? "+" : "") + fmt(r.diff, 6) + " ORE";
-  });
+  // --- Unrefined Yield (custom wiring — has horizon buttons, not just inputs) ---
+  const unrefForm = document.getElementById("form-unrefined");
+  if (unrefForm) {
+    let selectedHorizon = "1m";
+
+    function updateUnrefined() {
+      const yourBalance = parseFloat(document.getElementById("unref-your-balance").value) || 0;
+      const annualRatePct = parseFloat(document.getElementById("unref-rate").value) || 0;
+      const days = HORIZON_DAYS[selectedHorizon];
+
+      const r = calcUnrefinedYield(yourBalance, annualRatePct, days);
+
+      document.getElementById("unref-out-total").textContent = fmt(r.projectedBalance, 4) + " ORE";
+      document.getElementById("unref-out-yield").textContent = "+" + fmt(r.yieldEarned, 4) + " ORE";
+      document.getElementById("unref-out-rate").textContent = "+" + pct(r.effectiveRateForPeriod, 3);
+    }
+
+    unrefForm.querySelectorAll("input[type='number']").forEach((el) => el.addEventListener("input", updateUnrefined));
+    unrefForm.querySelectorAll(".horizon-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedHorizon = btn.dataset.horizon;
+        unrefForm.querySelectorAll(".horizon-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        updateUnrefined();
+      });
+    });
+    updateUnrefined();
+  }
 });
