@@ -20,6 +20,7 @@
     <a href="#sol-rewards">SOL Rewards</a>
     <a href="#ore-rewards">ORE Rewards</a>
     <a href="#motherlode">Motherlode</a>
+    <a href="#unrefined-yield">Unrefined Yield</a>
   </div>
   <a class="nav__cta" href="donations.html">Donate</a>
 </nav>
@@ -259,9 +260,57 @@
   </form>
 </section>
 
+<!-- ============================================================
+     UNREFINED YIELD
+     ============================================================ -->
+<section class="section" id="unrefined-yield">
+  <div class="section__head reveal">
+    <div>
+      <span class="section__eyebrow">05 / Yield</span>
+      <h2 class="section__title">Unrefined Yield</h2>
+    </div>
+    <p class="section__desc">Unclaimed ("unrefined") ORE isn't just sitting still — every time someone else claims their ORE, a 10% fee gets redistributed across everyone who still has an unclaimed balance. Enter your balance, pick a horizon, and see the projection.</p>
+  </div>
+
+  <form class="calc reveal" id="form-unrefined">
+    <div class="calc__inputs">
+      <div class="mini-grid" data-pattern="0,4,6,8,12,16,18,20,24"></div>
+      <div class="field" style="margin-top:24px;">
+        <label for="unref-your-balance">Your unrefined (unclaimed) ORE</label>
+        <input type="number" id="unref-your-balance" step="0.0001" min="0" value="100" />
+      </div>
+      <div class="field">
+        <label for="unref-rate">Estimated annual yield rate</label>
+        <input type="number" id="unref-rate" step="0.1" min="0" value="12" />
+        <span class="hint">% per year from redistribution — <a href="https://ore.fyi" target="_blank" rel="noopener" style="color: var(--gray-300); text-decoration: underline;">check the current "Refining APR" on ore.fyi &rarr;</a> and enter it here.</span>
+      </div>
+      <div class="field">
+        <label>Time horizon</label>
+        <div class="horizon-group">
+          <button type="button" class="horizon-btn" data-horizon="1d">1 Day</button>
+          <button type="button" class="horizon-btn" data-horizon="1w">1 Week</button>
+          <button type="button" class="horizon-btn active" data-horizon="1m">1 Month</button>
+          <button type="button" class="horizon-btn" data-horizon="6m">6 Months</button>
+          <button type="button" class="horizon-btn" data-horizon="1y">1 Year</button>
+        </div>
+      </div>
+    </div>
+    <div class="calc__output">
+      <div class="stat">
+        <div class="stat__label">Projected total ORE at end of horizon</div>
+        <div class="stat__value" id="unref-out-total">—</div>
+        <div class="stat__sub">Yield earned: <span id="unref-out-yield">—</span></div>
+      </div>
+      <div class="fee-breakdown">
+        <div><span>Effective return over this period</span><span id="unref-out-rate">—</span></div>
+      </div>
+    </div>
+  </form>
+</section>
+
 <section class="donate-teaser reveal">
   <h2 class="section__title" style="font-size: 28px;">Built free. Kept free.</h2>
-  <p>The developer resides in a location with limited resources; consider helping them with sol to help them mine while supporting the project and future projects.</p>
+  <p>OreCalc is an independent, unofficial tool — not affiliated with Regolith Labs. If it saved you some guesswork, consider chipping in.</p>
   <a class="btn btn--solid" href="donations.html">Go to donations</a>
 </section>
 
